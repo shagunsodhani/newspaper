@@ -558,6 +558,10 @@ class ContentExtractor(object):
                     continue
                 else:
                     valid_categories.append(scheme+'://'+domain)
+                    if (urls.url_to_filetype(p_url) == None):
+                        valid_categories.append(p_url)
+                    else:
+                        valid_categories.append(p_url.rsplit("/", 1)[0])
                     # TODO account for case where category is in form
                     # http://subdomain.domain.tld/category/ <-- still legal!
             else:

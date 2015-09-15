@@ -33,7 +33,7 @@ BAD_CHUNKS = ['careers', 'contact', 'about', 'faq', 'terms', 'privacy',
               'advert', 'preferences', 'feedback', 'info', 'browse', 'howto',
               'account', 'subscribe', 'donate', 'shop', 'admin']
 
-BAD_DOMAINS = ['amazon', 'doubleclick', 'twitter']
+BAD_DOMAINS = ['amazon', 'doubleclick', 'twitter', 'facebook']
 
 def remove_args(url, keep_params=(), frags=False):
     """
@@ -93,7 +93,7 @@ def prepare_url(url, source_url=None):
 
     return proper_url
 
-def valid_url(url, verbose=False, test=False):
+def valid_url(url, domain=None, verbose=False, test=False):
     """
     Is this URL a valid news-article url?
 
@@ -182,6 +182,10 @@ def valid_url(url, verbose=False, test=False):
 
     url_slug = path_chunks[-1] if path_chunks else u''
 
+    if tld not in domain:
+        if verbose: print '%s caught for different domain' % url
+        return False
+
     if tld in BAD_DOMAINS:
         if verbose: print '%s caught for a bad tld' % url
         return False
@@ -225,9 +229,11 @@ def valid_url(url, verbose=False, test=False):
         return True
 
     for GOOD in GOOD_PATHS:
-        if GOOD.lower() in [p.lower() for p in path_chunks]:
-            if verbose: print '%s verified for good path' % url
-            return True
+        path_chunk = [p.lower() for p in path_chunks]
+        for a in path_chunk:
+            if GOOD.lower() in a:
+                if verbose: print '%s verified for good path' % url
+                return True
 
     if verbose: print '%s caught for default false' % url
     return False
@@ -244,6 +250,8 @@ def url_to_filetype(abs_url):
     if path.endswith('/'):
         path = path[:-1]
     path_chunks = [x for x in path.split('/') if len(x) > 0]
+    if(not path_chunks):
+        return  None
     last_chunk = path_chunks[-1].split('.')  # last chunk == file usually
     file_type = last_chunk[-1] if len(last_chunk) >= 2 else None
     return file_type or None
