@@ -290,21 +290,60 @@ class Source(object):
                       (before_purge, after_purge, after_memo, category.url))
         return articles
 
+    def homepage_articles(self):
+        """Downloads article urls from the homepage. For some news-sources, these
+        links were not captured in other methods. Churn out the articles from each url
+        with the url_to_article method
+        """
+        articles = []
+        url_title_tups = self.extractor.get_urls(self.doc, titles=True)
+        before_purge = len(url_title_tups)
+
+        for tup in url_title_tups:
+            indiv_url = tup[0]
+            indiv_title = tup[1]
+
+            _article = Article(
+                url=indiv_url,
+                source_url=self.url,
+                title=indiv_title,
+                config=self.config
+            )
+            articles.append(_article)
+
+        articles = self.purge_articles('url', articles)
+        after_purge = len(articles)
+
+        if self.config.memoize_articles:
+            cur_articles = utils.memoize_articles(self, articles)
+        after_memo = len(articles)
+
+        if self.config.verbose:
+            print ('%d->%d->%d for %s' %
+                   (before_purge, after_purge, after_memo, self.url))
+        log.debug('%d->%d->%d for %s' %
+                  (before_purge, after_purge, after_memo, self.url))
+        return articles
+
     def _generate_articles(self):
         """Returns a list of all articles, from both categories and feeds
         """
+        homepage_articles = self.homepage_articles()
         category_articles = self.categories_to_articles()
         feed_articles = self.feeds_to_articles()
 
-        articles = feed_articles + category_articles
+        articles = homepage_articles + feed_articles + category_articles
         uniq = {article.url: article for article in articles}
         return uniq.values()
 
-    def generate_articles(self, limit=5000):
+    def generate_articles(self, limit=-1):
         """Saves all current articles of news source, filter out bad urls
         """
         articles = self._generate_articles()
-        self.articles = articles[:limit]
+        if limit==-1:
+            self.articles = articles
+        else:
+            self.articles = articles[:limit]
         log.debug(len(articles), 'articles generated and cutoff at', limit)
 
     def download_articles(self, threads=1):
